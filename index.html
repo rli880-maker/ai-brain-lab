@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="theme-color" content="#0b1020" />
+    <title>AI LAB - AI 原理实验室</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-label="AI LAB AI 原理实验室">
+      <header class="site-header">
+        <section class="topbar">
+          <div class="brand">
+            <span class="brand-mark">AI</span>
+            <span class="brand-title">AI LAB</span>
+          </div>
+          <div class="run-state" id="runState">实验待启动</div>
+        </section>
+
+        <nav class="lab-switch" aria-label="实验切换">
+          <button type="button" class="lab-tab is-active" data-lab="token">Token 实验室</button>
+          <button type="button" class="lab-tab" data-lab="memory">Memory 实验室</button>
+          <button type="button" class="lab-tab" data-lab="rag">RAG 实验室</button>
+          <button type="button" class="lab-tab" data-lab="hallucination">幻觉实验室</button>
+          <button type="button" class="lab-tab" data-lab="skills">Agent 实验室</button>
+          <button type="button" class="lab-tab" data-lab="training">训练实验室</button>
+        </nav>
+      </header>
+
+      <section class="lab-view is-active" id="tokenLab" aria-label="Token 实验室">
+        <section class="hero-band">
+          <div>
+            <p class="kicker">第一关</p>
+            <h1>Token 实验室</h1>
+          <p class="subtitle">选择一个前缀案例，先让 Token 飞进 AI 大脑，再猜它最可能选哪个片段。</p>
+          </div>
+          <div class="level-badge" aria-label="当前进度">
+            <span id="progressValue">0</span>
+            <small>%</small>
+          </div>
+        </section>
+
+        <section class="control-panel" aria-label="输入区">
+          <label class="input-label" for="promptInput">选择或输入前缀</label>
+          <textarea id="promptInput" maxlength="36" spellcheck="false">今天天气真</textarea>
+
+          <div class="examples" aria-label="示例句">
+            <button type="button" class="chip" data-text="今天天气真">天气</button>
+            <button type="button" class="chip" data-text="我最喜欢吃">食物</button>
+            <button type="button" class="chip" data-text="熊猫最喜欢吃">熊猫</button>
+          </div>
+
+          <button type="button" class="start-button" id="startButton">
+            <span class="button-icon">▶</span>
+            <span>开始实验</span>
+          </button>
+        </section>
+
+        <section class="lab-stage" aria-label="实验区">
+          <article class="stage-panel token-zone">
+            <header>
+              <span class="step">1</span>
+              <h2>切成 Token</h2>
+            </header>
+            <div class="token-track" id="tokenTrack"></div>
+          </article>
+
+          <article class="stage-panel brain-zone">
+            <header>
+              <span class="step">2</span>
+              <h2>进入 AI 大脑</h2>
+            </header>
+            <div class="brain-scene" id="brainScene">
+              <canvas id="particleCanvas" width="520" height="360" aria-hidden="true"></canvas>
+              <div class="brain-core" id="brainCore">
+                <span>AI</span>
+                <i class="orbit orbit-a"></i>
+                <i class="orbit orbit-b"></i>
+                <i class="node node-a"></i>
+                <i class="node node-b"></i>
+                <i class="node node-c"></i>
+              </div>
+            </div>
+            <div class="brain-memory" id="brainMemory"></div>
+          </article>
+        </section>
+
+        <section class="prediction-panel" aria-label="预测区">
+          <header>
+            <span class="step">3</span>
+            <h2>先猜一下</h2>
+          </header>
+
+          <div class="sentence-preview" id="sentencePreview"></div>
+          <div class="guess-hint" id="guessHint">完成 Token 飞入后，你会先猜 AI 最可能选择哪个片段。</div>
+          <div class="guess-panel" id="guessPanel" hidden>
+            <p class="guess-title">你觉得 AI 最可能选哪个？</p>
+            <div class="guess-options" id="guessOptions"></div>
+          </div>
+          <div class="prob-list" id="probList"></div>
+          <div class="token-result" id="tokenResult" hidden></div>
+        </section>
+
+        <section class="result-panel" aria-live="polite">
+          <p class="result-title">你刚刚看见了什么？</p>
+          <p>AI 先把一句话拆成很多小片段（Token）。然后根据前面的片段，猜测下一个最可能出现的片段。它不是在理解世界，而是在进行概率预测。</p>
+        </section>
+      </section>
+
+      <section class="lab-view" id="memoryLab" aria-label="Memory 实验室">
+        <section class="hero-band">
+          <div>
+            <p class="kicker">第二关</p>
+            <h1>Memory 实验室</h1>
+            <p class="subtitle">把信息塞进 3 个记忆槽，看看新信息如何把旧信息顶出去。</p>
+          </div>
+          <div class="level-badge memory-badge" aria-label="记忆容量">
+            <span id="memoryCount">0</span>
+            <small>/3</small>
+          </div>
+        </section>
+
+        <section class="control-panel" aria-label="记忆输入区">
+          <label class="input-label" for="memoryInput">告诉 AI 一件事</label>
+          <textarea id="memoryInput" maxlength="28" spellcheck="false">我喜欢猫</textarea>
+
+          <div class="examples" aria-label="记忆示例">
+            <button type="button" class="chip memory-chip" data-memory="我喜欢猫">喜欢猫</button>
+            <button type="button" class="chip memory-chip" data-memory="我住北京">住北京</button>
+            <button type="button" class="chip memory-chip" data-memory="我今天生日">生日</button>
+            <button type="button" class="chip memory-chip" data-memory="我爱玩游戏">玩游戏</button>
+            <button type="button" class="chip memory-chip" data-memory="我最怕打针">怕打针</button>
+          </div>
+
+          <button type="button" class="start-button memory-action" id="rememberButton">
+            <span class="button-icon">＋</span>
+            <span>放进记忆槽</span>
+          </button>
+        </section>
+
+        <section class="memory-stage" aria-label="记忆槽实验区">
+          <article class="stage-panel">
+            <header>
+              <span class="step">1</span>
+              <h2>3 个记忆槽</h2>
+            </header>
+            <div class="slot-grid" id="slotGrid"></div>
+            <div class="evict-strip" id="evictStrip">旧信息会从这里滑走</div>
+          </article>
+
+          <article class="stage-panel">
+            <header>
+              <span class="step">2</span>
+              <h2>AI 只能看见槽里的内容</h2>
+            </header>
+            <div class="memory-feed" id="memoryFeed"></div>
+            <div class="recall-box" id="recallBox">先放入几条信息，再让 AI 回忆。</div>
+            <button type="button" class="secondary-button" id="recallButton">让 AI 回忆</button>
+          </article>
+        </section>
+
+        <section class="result-panel" aria-live="polite">
+          <p class="result-title">你刚刚看见了什么？</p>
+          <p>AI 不是把所有聊天永远记住，而是只能在有限窗口里看见最近的信息。窗口满了，旧内容就会被挤出去。</p>
+        </section>
+      </section>
+
+      <section class="lab-view" id="ragLab" aria-label="RAG 资料库实验室">
+        <section class="hero-band">
+          <div>
+            <p class="kicker">第三关</p>
+            <h1>RAG 资料库实验室</h1>
+            <p class="subtitle">问题可以变化，但资料库保持不变。AI 会重新搜索同一批资料，找到对应内容后再回答。</p>
+          </div>
+          <div class="level-badge rag-badge" aria-label="命中资料数">
+            <span id="ragHitCount">0</span>
+            <small>条</small>
+          </div>
+        </section>
+
+        <section class="rag-stage" aria-label="RAG 实验区">
+          <article class="stage-panel">
+            <header>
+              <span class="step">1</span>
+              <h2>问题</h2>
+            </header>
+            <div class="rag-question-list" id="ragQuestionList"></div>
+          </article>
+
+          <article class="stage-panel">
+            <header>
+              <span class="step">2</span>
+              <h2>资料库检索</h2>
+            </header>
+            <div class="rag-route" id="ragRoute">问题变了 → 资料库没变 → AI重新搜索 → 找到对应资料 → 生成答案</div>
+            <button type="button" class="start-button rag-action" id="ragSearchButton">
+              <span class="button-icon">▶</span>
+              <span>重新搜索资料</span>
+            </button>
+            <div class="rag-status" id="ragStatus">选择一个问题，让 AI 进入同一个资料库查找答案。</div>
+          </article>
+        </section>
+
+        <section class="rag-stage" aria-label="资料和回答">
+          <article class="stage-panel">
+            <header>
+              <span class="step">3</span>
+              <h2>资料库卡片</h2>
+            </header>
+            <div class="rag-doc-list" id="ragDocList"></div>
+          </article>
+
+          <article class="stage-panel">
+            <header>
+              <span class="step">4</span>
+              <h2>生成回答</h2>
+            </header>
+            <div class="rag-answer" id="ragAnswer">AI：我还没有查资料，所以不能直接回答。</div>
+          </article>
+        </section>
+
+        <section class="result-panel" aria-live="polite">
+          <p class="result-title">你刚刚看见了什么？</p>
+          <p>问题变了，资料库不需要跟着变。AI 会在同一个资料库里重新搜索，命中对应资料后再生成答案。这就是 RAG 的基本感觉。</p>
+        </section>
+      </section>
+
+      <section class="lab-view" id="hallucinationLab" aria-label="AI 幻觉实验室">
+        <section class="hero-band">
+          <div>
+            <p class="kicker">第四关</p>
+            <h1>AI 幻觉实验室</h1>
+            <p class="subtitle">资料库里没有答案时，AI 仍可能开始概率猜测，生成一个看起来很肯定的回答。</p>
+          </div>
+          <div class="level-badge hallucination-badge" aria-label="幻觉风险">
+            <span id="hallucinationRisk">?</span>
+            <small>风险</small>
+          </div>
+        </section>
+
+        <section class="hallucination-stage" aria-label="幻觉实验区">
+          <article class="stage-panel">
+            <header>
+              <span class="step">1</span>
+              <h2>选择问题</h2>
+            </header>
+            <div class="hallucination-question-list" id="hallucinationQuestionList"></div>
+          </article>
+
+          <article class="stage-panel">
+            <header>
+              <span class="step">2</span>
+              <h2>让 AI 回答</h2>
+            </header>
+            <button type="button" class="start-button hallucination-action" id="hallucinationRunButton">
+              <span class="button-icon">▶</span>
+              <span>让 AI 回答</span>
+            </button>
+            <div class="hallucination-status" id="hallucinationStatus">选择一个问题，看看 AI 能不能找到资料。</div>
+            <div class="hallucination-warning" id="hallucinationWarning" hidden></div>
+          </article>
+        </section>
+
+        <section class="hallucination-stage" aria-label="资料和回答">
+          <article class="stage-panel">
+            <header>
+              <span class="step">3</span>
+              <h2>资料库</h2>
+            </header>
+            <div class="hallucination-doc-list" id="hallucinationDocList"></div>
+          </article>
+
+          <article class="stage-panel">
+            <header>
+              <span class="step">4</span>
+              <h2>观察回答</h2>
+            </header>
+            <div class="hallucination-confidence" id="hallucinationConfidence">可信度：等待实验</div>
+            <div class="hallucination-answer" id="hallucinationAnswer">AI：我还没有开始回答。</div>
+            <div class="hallucination-note" id="hallucinationNote" hidden></div>
+          </article>
+        </section>
+
+        <section class="result-panel" aria-live="polite">
+          <p class="result-title">你刚刚看见了什么？</p>
+          <p>AI 没有找到资料时，仍然可能根据概率生成答案。答案看起来很自信，但不一定可靠。这种现象就叫 AI 幻觉。</p>
+        </section>
+      </section>
+
+      <section class="lab-view" id="skillsLab" aria-label="Agent 实验室">
+        <section class="hero-band">
+          <div>
+            <p class="kicker">第五关</p>
+            <h1>Agent 实验室</h1>
+            <p class="subtitle">普通 AI 只能给建议。Agent 会先规划步骤，再调用工具，把结果组合成行动方案。</p>
+          </div>
+          <div class="level-badge skills-badge" aria-label="已安装工具数">
+            <span id="skillCount">0</span>
+            <small>/3</small>
+          </div>
+        </section>
+
+        <section class="skills-stage" aria-label="Agent 工具实验区">
+          <article class="stage-panel">
+            <header>
+              <span class="step">1</span>
+              <h2>选择工具</h2>
+            </header>
+            <div class="tools-grid" id="skillGrid"></div>
+          </article>
+
+          <article class="stage-panel">
+            <header>
+              <span class="step">2</span>
+              <h2>任务过程</h2>
+            </header>
+            <div class="question-list" id="questionList"></div>
+            <div class="tool-route" id="toolRoute">任务 → 判断需要什么 → 调用工具 → 整理计划</div>
+            <div class="ai-answer" id="aiAnswer">普通 AI：可以给你一些建议。Agent：会一步步调用工具，把结果组合成计划。</div>
+            <button type="button" class="secondary-button agent-reset" id="agentResetButton">重新规划</button>
+          </article>
+        </section>
+
+        <section class="result-panel" aria-live="polite">
+          <p class="result-title">你刚刚看见了什么？</p>
+          <p>AI 会回答问题。AI Agent 会先规划，再选择天气、地图、搜索等工具，拿到结果后继续完成任务。</p>
+        </section>
+      </section>
+
+      <section class="lab-view" id="trainingLab" aria-label="训练 AI 实验室">
+        <section class="hero-band">
+          <div>
+            <p class="kicker">第六关</p>
+            <h1>训练AI怎么回答</h1>
+            <p class="subtitle">AI一开始不会判断什么回答更合适。你给它反馈后，它会慢慢提高好回答的概率。</p>
+          </div>
+          <div class="level-badge training-badge" aria-label="训练进度">
+            <span id="trainingProgressBadge">0%</span>
+            <small>进度</small>
+          </div>
+        </section>
+
+        <section class="training-stage" aria-label="聊天反馈训练">
+          <article class="stage-panel">
+            <header>
+              <span class="step">1</span>
+              <h2>用户消息</h2>
+            </header>
+            <div class="training-chat-row">
+              <span class="training-chat-label">用户</span>
+              <p class="training-user-bubble">我今天考试没考好。</p>
+            </div>
+            <div class="training-message" id="trainingMessage">AI会根据当前概率选择一个回复。你可以点按钮，也可以左右滑动回复卡片。</div>
+          </article>
+
+          <article class="stage-panel">
+            <header>
+              <span class="step">2</span>
+              <h2>AI回复卡片</h2>
+            </header>
+            <div class="training-reply-card" id="trainingReplyCard">
+              <span class="training-reply-label">AI当前回复</span>
+              <p id="trainingReplyText">哈哈哈，那也太惨了吧</p>
+              <small>左滑惩罚 -10　右滑奖励 +100</small>
+              <span class="training-feedback" id="trainingFeedback" hidden></span>
+            </div>
+            <div class="training-actions">
+              <button type="button" class="training-action training-bad" id="trainingBadButton">不合适 👎</button>
+              <button type="button" class="training-action training-good" id="trainingGoodButton">合适 👍</button>
+              <button type="button" class="secondary-button training-reset" id="trainingResetButton">重置</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="training-stage" aria-label="概率和进度">
+          <article class="stage-panel">
+            <header>
+              <span class="step">3</span>
+              <h2>候选回复概率</h2>
+            </header>
+            <div class="training-probability-list" id="trainingProbabilityList"></div>
+          </article>
+
+          <article class="stage-panel">
+            <header>
+              <span class="step">4</span>
+              <h2>训练进度</h2>
+            </header>
+            <div class="training-progress-card" id="trainingProgressCard">
+              <div class="training-progress-head">
+                <span>训练进度</span>
+                <strong id="trainingProgressValue">0%</strong>
+              </div>
+              <div class="training-progress-track">
+                <div class="training-progress-fill" id="trainingProgressFill"></div>
+              </div>
+              <p id="trainingProgressCopy">最佳回复概率达到 80% 以上时，训练完成</p>
+            </div>
+          </article>
+        </section>
+
+        <section class="result-panel" aria-live="polite">
+          <p class="result-title">你刚刚训练了AI</p>
+          <p>AI一开始会根据概率随机选择回答。你的反馈会改变这些概率。好的回答被奖励后，更容易再次出现。不好的回答被惩罚后，出现机会会变少。这就是AI训练的基本感觉。</p>
+        </section>
+
+        <section class="result-panel" aria-live="polite">
+          <p class="result-title">AI不是魔法</p>
+          <p>AI是概率预测系统、记忆系统、检索系统、工具系统、反馈训练系统共同组成的智能体。</p>
+        </section>
+      </section>
+    </main>
+
+    <script src="./game.js"></script>
+  </body>
+</html>
