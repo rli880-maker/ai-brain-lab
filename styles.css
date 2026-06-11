@@ -34,45 +34,92 @@ button {
   padding: 0 24px max(64px, env(safe-area-inset-bottom));
 }
 
-.site-header {
-  padding: max(20px, env(safe-area-inset-top)) 0 24px;
+.top-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  overflow: hidden;
+  padding: max(20px, env(safe-area-inset-top)) 0 20px;
   color: #fff;
   background: #0f172a;
   box-shadow: 0 0 0 100vmax #0f172a;
   clip-path: inset(0 -100vmax);
 }
 
-.topbar {
+.header-left {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
+}
+
+.logo-area {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.nav-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  user-select: none;
+}
+
+.nav-scroll.dragging {
+  cursor: grabbing;
+}
+
+.nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-tabs {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  color: #fff;
+  width: max-content;
 }
 
-.lab-switch {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 18px;
-  padding: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.lab-tab {
-  height: 38px;
-  border-radius: 6px;
+.nav-tab {
+  flex: 0 0 auto;
+  height: 44px;
+  padding: 0 20px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  box-sizing: border-box;
   background: transparent;
   color: rgba(255, 255, 255, 0.72);
-  font-size: 14px;
-  font-weight: 820;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
 }
 
-.lab-tab.is-active {
-  color: #10213c;
-  background: #83f3d3;
+.nav-tab.active {
+  height: 44px;
+  padding: 0 20px;
+  background: #a7f3d0;
+  color: #0f172a;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  outline: none;
+  box-shadow: none;
+  transform: none;
+  margin: 0;
+}
+
+.nav-tab:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -4px;
 }
 
 .lab-view {
@@ -107,15 +154,24 @@ button {
   font-weight: 760;
 }
 
-.run-state {
-  min-width: 88px;
-  padding: 7px 10px;
+.status-pill {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  margin: 0;
+  padding: 0 10px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;
   color: rgba(255, 255, 255, 0.8);
   background: rgba(255, 255, 255, 0.08);
   font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
   text-align: center;
+  white-space: nowrap;
+  cursor: default;
 }
 
 .hero-band {
@@ -335,7 +391,7 @@ textarea:focus {
   padding: 16px;
 }
 
-header {
+.lab-view header {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1542,10 +1598,6 @@ h2 {
     align-items: center;
   }
 
-  .lab-switch {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .level-badge {
     width: 62px;
     height: 62px;
@@ -1577,6 +1629,20 @@ h2 {
 }
 
 @media (max-width: 380px) {
+  .brand {
+    gap: 7px;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    line-height: 30px;
+  }
+
+  .brand-title {
+    font-size: 13px;
+  }
+
   h1 {
     font-size: 30px;
   }
@@ -1587,10 +1653,6 @@ h2 {
 
   .subtitle {
     font-size: 14px;
-  }
-
-  .lab-switch {
-    grid-template-columns: 1fr;
   }
 
 }

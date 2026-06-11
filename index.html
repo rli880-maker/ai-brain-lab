@@ -10,23 +10,30 @@
   </head>
   <body>
     <main class="game-shell" aria-label="AI LAB AI 原理实验室">
-      <header class="site-header">
-        <section class="topbar">
-          <div class="brand">
-            <span class="brand-mark">AI</span>
-            <span class="brand-title">AI LAB</span>
+      <header class="top-header">
+        <div class="header-left">
+          <div class="logo-area">
+            <div class="brand">
+              <span class="brand-mark">AI</span>
+              <span class="brand-title">AI LAB</span>
+            </div>
           </div>
-          <div class="run-state" id="runState">实验待启动</div>
-        </section>
 
-        <nav class="lab-switch" aria-label="实验切换">
-          <button type="button" class="lab-tab is-active" data-lab="token">Token 实验室</button>
-          <button type="button" class="lab-tab" data-lab="memory">Memory 实验室</button>
-          <button type="button" class="lab-tab" data-lab="rag">RAG 实验室</button>
-          <button type="button" class="lab-tab" data-lab="hallucination">幻觉实验室</button>
-          <button type="button" class="lab-tab" data-lab="skills">Agent 实验室</button>
-          <button type="button" class="lab-tab" data-lab="training">训练实验室</button>
-        </nav>
+          <button type="button" class="status-pill" id="runState" tabindex="-1" aria-live="polite">
+            实验待启动
+          </button>
+        </div>
+
+        <div class="nav-scroll">
+          <div class="nav-tabs" role="tablist" aria-label="实验切换">
+            <button type="button" class="nav-tab active" role="tab" aria-selected="true" data-lab="token">Token 实验室</button>
+            <button type="button" class="nav-tab" role="tab" aria-selected="false" data-lab="memory">Memory 实验室</button>
+            <button type="button" class="nav-tab" role="tab" aria-selected="false" data-lab="rag">RAG 实验室</button>
+            <button type="button" class="nav-tab" role="tab" aria-selected="false" data-lab="hallucination">幻觉实验室</button>
+            <button type="button" class="nav-tab" role="tab" aria-selected="false" data-lab="skills">Agent 实验室</button>
+            <button type="button" class="nav-tab" role="tab" aria-selected="false" data-lab="training">训练实验室</button>
+          </div>
+        </div>
       </header>
 
       <section class="lab-view is-active" id="tokenLab" aria-label="Token 实验室">

@@ -186,7 +186,8 @@ const state = {
 }
 
 const nodes = {
-  tabs: document.querySelectorAll(".lab-tab"),
+  tabs: document.querySelectorAll(".nav-tab"),
+  navScroll: document.querySelector(".nav-scroll"),
   labViews: document.querySelectorAll(".lab-view"),
   input: document.querySelector("#promptInput"),
   start: document.querySelector("#startButton"),
@@ -303,15 +304,54 @@ function getTokenScene(text) {
 }
 
 function switchLab(lab) {
+  const labConfig = {
+    token: {
+      viewId: "tokenLab",
+      title: "Token 实验室",
+      status: "实验待启动"
+    },
+    memory: {
+      viewId: "memoryLab",
+      title: "Memory 实验室",
+      status: "记忆槽待填充"
+    },
+    rag: {
+      viewId: "ragLab",
+      title: "RAG 实验室",
+      status: "资料库待检索"
+    },
+    hallucination: {
+      viewId: "hallucinationLab",
+      title: "幻觉实验室",
+      status: "幻觉实验待运行"
+    },
+    skills: {
+      viewId: "skillsLab",
+      title: "Agent 实验室",
+      status: "Agent 实验待运行"
+    },
+    training: {
+      viewId: "trainingLab",
+      title: "训练实验室",
+      status: "训练实验待运行"
+    }
+  }
+
+  const config = labConfig[lab]
+  if (!config) return
+
   state.activeLab = lab
-  nodes.tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.lab === lab))
-  nodes.labViews.forEach((view) => view.classList.toggle("is-active", view.id === `${lab}Lab`))
-  if (lab === "token") nodes.runState.textContent = "实验待启动"
-  if (lab === "memory") nodes.runState.textContent = "记忆槽待填充"
-  if (lab === "skills") nodes.runState.textContent = "Agent 实验待运行"
-  if (lab === "rag") nodes.runState.textContent = "资料库待检索"
-  if (lab === "hallucination") nodes.runState.textContent = "幻觉实验待运行"
-  if (lab === "training") nodes.runState.textContent = "训练实验待运行"
+  nodes.runState.textContent = config.status
+  document.title = `${config.title} - AI LAB`
+
+  nodes.tabs.forEach((tab) => {
+    const isActive = tab.dataset.lab === lab
+    tab.classList.toggle("active", isActive)
+    tab.setAttribute("aria-selected", String(isActive))
+  })
+  nodes.labViews.forEach((view) => {
+    view.classList.toggle("is-active", view.id === config.viewId)
+  })
 }
 
 function renderTokens(tokens, sentCount = 0) {
@@ -1094,8 +1134,72 @@ function boot() {
   window.addEventListener("resize", resizeCanvas)
 
   nodes.tabs.forEach((tab) => {
-    tab.addEventListener("click", () => switchLab(tab.dataset.lab))
+    tab.addEventListener("click", () => {
+      const lab = tab.dataset.lab
+      switchLab(lab)
+    })
   })
+
+  let navMouseDown = false
+  let navDragStartX = 0
+  let navDragStartScrollLeft = 0
+  let navDidDrag = false
+  let suppressNextNavClick = false
+
+  const stopNavDrag = () => {
+    if (!navMouseDown) return
+
+    navMouseDown = false
+    suppressNextNavClick = navDidDrag
+    nodes.navScroll.classList.remove("dragging")
+
+    window.setTimeout(() => {
+      suppressNextNavClick = false
+    }, 0)
+  }
+
+  nodes.navScroll.addEventListener("mousedown", (event) => {
+    if (event.button !== 0) return
+
+    navMouseDown = true
+    navDragStartX = event.clientX
+    navDragStartScrollLeft = nodes.navScroll.scrollLeft
+    navDidDrag = false
+    suppressNextNavClick = false
+    nodes.navScroll.classList.add("dragging")
+  })
+
+  window.addEventListener("mousemove", (event) => {
+    if (!navMouseDown) return
+
+    const distance = event.clientX - navDragStartX
+    if (Math.abs(distance) > 5) navDidDrag = true
+    if (!navDidDrag) return
+
+    event.preventDefault()
+    nodes.navScroll.scrollLeft = navDragStartScrollLeft - distance
+  })
+
+  window.addEventListener("mouseup", stopNavDrag)
+  nodes.navScroll.addEventListener("mouseleave", stopNavDrag)
+
+  nodes.navScroll.addEventListener("click", (event) => {
+    if (!suppressNextNavClick) return
+
+    suppressNextNavClick = false
+    event.preventDefault()
+    event.stopPropagation()
+  }, true)
+
+  nodes.navScroll.addEventListener("wheel", (event) => {
+    if (nodes.navScroll.scrollWidth <= nodes.navScroll.clientWidth) return
+
+    const delta = event.deltaX || event.deltaY
+    if (!delta) return
+
+    event.preventDefault()
+    nodes.navScroll.scrollLeft += delta
+  }, { passive: false })
 
   document.querySelectorAll(".chip[data-text]").forEach((button) => {
     button.addEventListener("click", () => {
