@@ -691,7 +691,11 @@ function renderMemoryLab() {
 
 function rememberFact() {
   const fact = nodes.memoryInput.value.trim()
-  if (!fact) return
+  if (!fact) {
+    nodes.runState.textContent = "请先选择一件事"
+    nodes.rememberButton.disabled = true
+    return
+  }
 
   state.evictedItem = ""
   state.memoryItems.push(fact)
@@ -701,6 +705,11 @@ function rememberFact() {
   }
 
   nodes.memoryInput.value = ""
+  nodes.rememberButton.disabled = true
+  document.querySelectorAll(".memory-chip").forEach((chip) => {
+    chip.classList.remove("is-active")
+    chip.setAttribute("aria-pressed", "false")
+  })
   nodes.runState.textContent = state.evictedItem ? "旧记忆被挤出" : "新记忆已进入"
   nodes.recallBox.textContent = "AI 现在只能看见槽里的内容。"
   renderMemoryLab()
@@ -1280,10 +1289,14 @@ function boot() {
 
   document.querySelectorAll(".memory-chip").forEach((button) => {
     button.addEventListener("click", () => {
-      document.querySelectorAll(".memory-chip").forEach((chip) => chip.classList.remove("is-active"))
-      button.classList.add("is-active")
+      document.querySelectorAll(".memory-chip").forEach((chip) => {
+        const isSelected = chip === button
+        chip.classList.toggle("is-active", isSelected)
+        chip.setAttribute("aria-pressed", String(isSelected))
+      })
       nodes.memoryInput.value = button.dataset.memory
-      rememberFact()
+      nodes.rememberButton.disabled = false
+      nodes.runState.textContent = "已选择一件事"
     })
   })
 

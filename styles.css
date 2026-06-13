@@ -324,6 +324,24 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(31, 122, 236, 0.12);
 }
 
+.memory-display {
+  cursor: default;
+  user-select: none;
+  resize: none;
+  caret-color: transparent;
+  background: #f5f8fc;
+}
+
+.memory-display:focus {
+  border-color: #d5dfec;
+  box-shadow: none;
+  outline: none;
+}
+
+.memory-display::placeholder {
+  color: #8a98aa;
+}
+
 .examples {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -356,6 +374,13 @@ textarea:focus {
   background: #eaf4ff;
 }
 
+.memory-chip.is-active {
+  border-color: #20b486;
+  color: #08765a;
+  background: #dffbef;
+  box-shadow: 0 0 0 2px rgba(32, 180, 134, 0.14);
+}
+
 .start-button {
   display: flex;
   align-items: center;
@@ -372,7 +397,8 @@ textarea:focus {
 }
 
 .start-button:disabled {
-  opacity: 0.72;
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 .button-icon {

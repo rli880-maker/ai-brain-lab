@@ -145,17 +145,23 @@
 
         <section class="control-panel" aria-label="记忆输入区">
           <label class="input-label" for="memoryInput">告诉 AI 一件事</label>
-          <textarea id="memoryInput" maxlength="28" spellcheck="false">我喜欢猫</textarea>
+          <textarea
+            class="memory-display"
+            id="memoryInput"
+            readonly
+            aria-readonly="true"
+            placeholder="请先选择下面的一件事"
+          ></textarea>
 
           <div class="examples" aria-label="记忆示例">
-            <button type="button" class="chip memory-chip" data-memory="我喜欢猫">喜欢猫</button>
-            <button type="button" class="chip memory-chip" data-memory="我住北京">住北京</button>
-            <button type="button" class="chip memory-chip" data-memory="我今天生日">生日</button>
-            <button type="button" class="chip memory-chip" data-memory="我爱玩游戏">玩游戏</button>
-            <button type="button" class="chip memory-chip" data-memory="我最怕打针">怕打针</button>
+            <button type="button" class="chip memory-chip" data-memory="我喜欢猫" aria-pressed="false">喜欢猫</button>
+            <button type="button" class="chip memory-chip" data-memory="我住北京" aria-pressed="false">住北京</button>
+            <button type="button" class="chip memory-chip" data-memory="我今天生日" aria-pressed="false">生日</button>
+            <button type="button" class="chip memory-chip" data-memory="我爱玩游戏" aria-pressed="false">玩游戏</button>
+            <button type="button" class="chip memory-chip" data-memory="我最怕打针" aria-pressed="false">怕打针</button>
           </div>
 
-          <button type="button" class="start-button memory-action" id="rememberButton">
+          <button type="button" class="start-button memory-action" id="rememberButton" disabled>
             <span class="button-icon">＋</span>
             <span>放进记忆槽</span>
           </button>
