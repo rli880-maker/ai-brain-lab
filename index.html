@@ -24,7 +24,7 @@
           </button>
         </div>
 
-        <div class="nav-scroll">
+        <div class="nav-scroll desktop-nav">
           <div class="nav-tabs" role="tablist" aria-label="实验切换">
             <button type="button" class="nav-tab active" role="tab" aria-selected="true" data-lab="token">Token 实验室</button>
             <button type="button" class="nav-tab" role="tab" aria-selected="false" data-lab="memory">Memory 实验室</button>
@@ -33,6 +33,20 @@
             <button type="button" class="nav-tab" role="tab" aria-selected="false" data-lab="skills">Agent 实验室</button>
             <button type="button" class="nav-tab" role="tab" aria-selected="false" data-lab="training">训练实验室</button>
           </div>
+        </div>
+
+        <div class="mobile-nav">
+          <button
+            type="button"
+            class="mobile-current-lab"
+            id="mobileLabMenuButton"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-controls="mobileLabDrawer"
+          >
+            <span id="mobileCurrentLab">第1关 · Token实验室</span>
+            <span class="mobile-nav-chevron" aria-hidden="true">▾</span>
+          </button>
         </div>
       </header>
 
@@ -418,7 +432,47 @@
           <p>AI是概率预测系统、记忆系统、检索系统、工具系统、反馈训练系统共同组成的智能体。</p>
         </section>
       </section>
+
+      <nav class="mobile-level-pager" aria-label="关卡切换">
+        <button type="button" class="mobile-level-button" id="previousLabButton">上一关</button>
+        <span class="mobile-level-progress" id="mobileLevelProgress">1 / 6</span>
+        <button type="button" class="mobile-level-button is-primary" id="nextLabButton">下一关</button>
+      </nav>
     </main>
+
+    <div class="mobile-lab-drawer" id="mobileLabDrawer" aria-hidden="true">
+      <button type="button" class="mobile-drawer-backdrop" aria-label="关闭实验室菜单"></button>
+      <section class="mobile-drawer-sheet" role="dialog" aria-modal="true" aria-labelledby="mobileDrawerTitle">
+        <div class="mobile-drawer-handle" aria-hidden="true"></div>
+        <div class="mobile-drawer-header">
+          <div>
+            <p class="mobile-drawer-kicker">AI LAB</p>
+            <h2 id="mobileDrawerTitle">选择实验室</h2>
+          </div>
+          <button type="button" class="mobile-drawer-close" aria-label="关闭实验室菜单">×</button>
+        </div>
+        <div class="mobile-lab-list">
+          <button type="button" class="mobile-lab-option active" data-lab="token">
+            <span>第1关</span><strong>Token实验室</strong>
+          </button>
+          <button type="button" class="mobile-lab-option" data-lab="memory">
+            <span>第2关</span><strong>Memory实验室</strong>
+          </button>
+          <button type="button" class="mobile-lab-option" data-lab="rag">
+            <span>第3关</span><strong>RAG实验室</strong>
+          </button>
+          <button type="button" class="mobile-lab-option" data-lab="hallucination">
+            <span>第4关</span><strong>幻觉实验室</strong>
+          </button>
+          <button type="button" class="mobile-lab-option" data-lab="skills">
+            <span>第5关</span><strong>Agent实验室</strong>
+          </button>
+          <button type="button" class="mobile-lab-option" data-lab="training">
+            <span>第6关</span><strong>训练实验室</strong>
+          </button>
+        </div>
+      </section>
+    </div>
 
     <script src="./game.js"></script>
   </body>

@@ -122,6 +122,12 @@ button {
   outline-offset: -4px;
 }
 
+.mobile-nav,
+.mobile-level-pager,
+.mobile-lab-drawer {
+  display: none;
+}
+
 .lab-view {
   display: none;
 }
@@ -1584,12 +1590,250 @@ h2 {
   }
 }
 
-@media (max-width: 720px) {
+@media (min-width: 769px) {
+  .desktop-nav {
+    display: flex;
+  }
+
+  .mobile-nav {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
   .game-shell {
     padding-left: 12px;
     padding-right: 12px;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
   }
 
+  .top-header {
+    gap: 12px;
+  }
+
+  .header-left {
+    gap: 10px;
+  }
+
+  .status-pill {
+    display: none;
+  }
+
+  .desktop-nav {
+    display: none;
+  }
+
+  .mobile-nav {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+
+  .mobile-current-lab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: min(100%, 250px);
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    border-radius: 999px;
+    color: #0f172a;
+    background: #a7f3d0;
+    font-size: 14px;
+    font-weight: 750;
+    white-space: nowrap;
+  }
+
+  .mobile-nav-chevron {
+    flex: 0 0 auto;
+    font-size: 13px;
+    transition: transform 180ms ease;
+  }
+
+  .mobile-current-lab[aria-expanded="true"] .mobile-nav-chevron {
+    transform: rotate(180deg);
+  }
+
+  .mobile-level-pager {
+    position: fixed;
+    z-index: 40;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-level-button {
+    min-width: 0;
+    height: 44px;
+    padding: 0 16px;
+    border: 1px solid #d4deec;
+    border-radius: 12px;
+    color: #334155;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 750;
+  }
+
+  .mobile-level-button.is-primary {
+    border-color: #1f7aec;
+    color: #fff;
+    background: #1f7aec;
+  }
+
+  .mobile-level-button:disabled {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .mobile-level-progress {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+  }
+
+  .mobile-lab-drawer {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    display: block;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .mobile-lab-drawer.is-open {
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .mobile-drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.58);
+    opacity: 0;
+    transition: opacity 220ms ease;
+  }
+
+  .mobile-lab-drawer.is-open .mobile-drawer-backdrop {
+    opacity: 1;
+  }
+
+  .mobile-drawer-sheet {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    max-height: min(82vh, 680px);
+    padding: 8px 16px max(20px, env(safe-area-inset-bottom));
+    border-radius: 24px 24px 0 0;
+    background: #fff;
+    box-shadow: 0 -18px 50px rgba(15, 23, 42, 0.24);
+    overflow-y: auto;
+    transform: translateY(102%);
+    transition: transform 240ms ease;
+  }
+
+  .mobile-lab-drawer.is-open .mobile-drawer-sheet {
+    transform: translateY(0);
+  }
+
+  .mobile-drawer-handle {
+    width: 42px;
+    height: 5px;
+    margin: 0 auto 14px;
+    border-radius: 999px;
+    background: #cbd5e1;
+  }
+
+  .mobile-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+
+  .mobile-drawer-kicker {
+    margin: 0 0 3px;
+    color: #0f9f78;
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 0.12em;
+  }
+
+  .mobile-drawer-header h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 22px;
+  }
+
+  .mobile-drawer-close {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    color: #475569;
+    background: #f1f5f9;
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .mobile-lab-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .mobile-lab-option {
+    display: grid;
+    grid-template-columns: 58px 1fr;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 9px 14px;
+    border: 1px solid #dbe4f0;
+    border-radius: 14px;
+    color: #334155;
+    background: #fff;
+    text-align: left;
+  }
+
+  .mobile-lab-option span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .mobile-lab-option strong {
+    font-size: 15px;
+  }
+
+  .mobile-lab-option.active {
+    border-color: #77dfbd;
+    color: #0f172a;
+    background: #dffbef;
+    box-shadow: inset 4px 0 0 #20b486;
+  }
+
+  body.mobile-drawer-open {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 720px) {
   h1 {
     font-size: 34px;
   }

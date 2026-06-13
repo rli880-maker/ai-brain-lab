@@ -188,6 +188,15 @@ const state = {
 const nodes = {
   tabs: document.querySelectorAll(".nav-tab"),
   navScroll: document.querySelector(".nav-scroll"),
+  mobileLabMenuButton: document.querySelector("#mobileLabMenuButton"),
+  mobileCurrentLab: document.querySelector("#mobileCurrentLab"),
+  mobileLabDrawer: document.querySelector("#mobileLabDrawer"),
+  mobileLabOptions: document.querySelectorAll(".mobile-lab-option"),
+  mobileDrawerBackdrop: document.querySelector(".mobile-drawer-backdrop"),
+  mobileDrawerClose: document.querySelector(".mobile-drawer-close"),
+  previousLabButton: document.querySelector("#previousLabButton"),
+  nextLabButton: document.querySelector("#nextLabButton"),
+  mobileLevelProgress: document.querySelector("#mobileLevelProgress"),
   labViews: document.querySelectorAll(".lab-view"),
   input: document.querySelector("#promptInput"),
   start: document.querySelector("#startButton"),
@@ -250,6 +259,47 @@ const nodes = {
 
 const context = nodes.canvas.getContext("2d")
 
+const labOrder = ["token", "memory", "rag", "hallucination", "skills", "training"]
+
+const labConfig = {
+  token: {
+    viewId: "tokenLab",
+    title: "Token 实验室",
+    mobileTitle: "Token实验室",
+    status: "实验待启动"
+  },
+  memory: {
+    viewId: "memoryLab",
+    title: "Memory 实验室",
+    mobileTitle: "Memory实验室",
+    status: "记忆槽待填充"
+  },
+  rag: {
+    viewId: "ragLab",
+    title: "RAG 实验室",
+    mobileTitle: "RAG实验室",
+    status: "资料库待检索"
+  },
+  hallucination: {
+    viewId: "hallucinationLab",
+    title: "幻觉实验室",
+    mobileTitle: "幻觉实验室",
+    status: "幻觉实验待运行"
+  },
+  skills: {
+    viewId: "skillsLab",
+    title: "Agent 实验室",
+    mobileTitle: "Agent实验室",
+    status: "Agent 实验待运行"
+  },
+  training: {
+    viewId: "trainingLab",
+    title: "训练实验室",
+    mobileTitle: "训练实验室",
+    status: "训练实验待运行"
+  }
+}
+
 function createTokenList(text) {
   const tokens = []
   let cursor = 0
@@ -304,42 +354,10 @@ function getTokenScene(text) {
 }
 
 function switchLab(lab) {
-  const labConfig = {
-    token: {
-      viewId: "tokenLab",
-      title: "Token 实验室",
-      status: "实验待启动"
-    },
-    memory: {
-      viewId: "memoryLab",
-      title: "Memory 实验室",
-      status: "记忆槽待填充"
-    },
-    rag: {
-      viewId: "ragLab",
-      title: "RAG 实验室",
-      status: "资料库待检索"
-    },
-    hallucination: {
-      viewId: "hallucinationLab",
-      title: "幻觉实验室",
-      status: "幻觉实验待运行"
-    },
-    skills: {
-      viewId: "skillsLab",
-      title: "Agent 实验室",
-      status: "Agent 实验待运行"
-    },
-    training: {
-      viewId: "trainingLab",
-      title: "训练实验室",
-      status: "训练实验待运行"
-    }
-  }
-
   const config = labConfig[lab]
   if (!config) return
 
+  const labIndex = labOrder.indexOf(lab)
   state.activeLab = lab
   nodes.runState.textContent = config.status
   document.title = `${config.title} - AI LAB`
@@ -352,6 +370,31 @@ function switchLab(lab) {
   nodes.labViews.forEach((view) => {
     view.classList.toggle("is-active", view.id === config.viewId)
   })
+  nodes.mobileLabOptions.forEach((option) => {
+    const isActive = option.dataset.lab === lab
+    option.classList.toggle("active", isActive)
+    option.setAttribute("aria-current", isActive ? "page" : "false")
+  })
+  nodes.mobileCurrentLab.textContent = `第${labIndex + 1}关 · ${config.mobileTitle}`
+  nodes.mobileLevelProgress.textContent = `${labIndex + 1} / ${labOrder.length}`
+  nodes.previousLabButton.disabled = labIndex === 0
+  nodes.nextLabButton.textContent = labIndex === labOrder.length - 1 ? "完成实验" : "下一关"
+  closeMobileLabDrawer()
+}
+
+function openMobileLabDrawer() {
+  nodes.mobileLabDrawer.classList.add("is-open")
+  nodes.mobileLabDrawer.setAttribute("aria-hidden", "false")
+  nodes.mobileLabMenuButton.setAttribute("aria-expanded", "true")
+  document.body.classList.add("mobile-drawer-open")
+  nodes.mobileLabOptions[labOrder.indexOf(state.activeLab)]?.focus()
+}
+
+function closeMobileLabDrawer() {
+  nodes.mobileLabDrawer.classList.remove("is-open")
+  nodes.mobileLabDrawer.setAttribute("aria-hidden", "true")
+  nodes.mobileLabMenuButton.setAttribute("aria-expanded", "false")
+  document.body.classList.remove("mobile-drawer-open")
 }
 
 function renderTokens(tokens, sentCount = 0) {
@@ -1140,6 +1183,31 @@ function boot() {
     })
   })
 
+  nodes.mobileLabMenuButton.addEventListener("click", openMobileLabDrawer)
+  nodes.mobileDrawerBackdrop.addEventListener("click", closeMobileLabDrawer)
+  nodes.mobileDrawerClose.addEventListener("click", closeMobileLabDrawer)
+  nodes.mobileLabOptions.forEach((option) => {
+    option.addEventListener("click", () => switchLab(option.dataset.lab))
+  })
+  nodes.previousLabButton.addEventListener("click", () => {
+    const currentIndex = labOrder.indexOf(state.activeLab)
+    if (currentIndex > 0) switchLab(labOrder[currentIndex - 1])
+  })
+  nodes.nextLabButton.addEventListener("click", () => {
+    const currentIndex = labOrder.indexOf(state.activeLab)
+    if (currentIndex < labOrder.length - 1) {
+      switchLab(labOrder[currentIndex + 1])
+      return
+    }
+    nodes.runState.textContent = "六关实验已完成"
+  })
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && nodes.mobileLabDrawer.classList.contains("is-open")) {
+      closeMobileLabDrawer()
+      nodes.mobileLabMenuButton.focus()
+    }
+  })
+
   let navMouseDown = false
   let navDragStartX = 0
   let navDragStartScrollLeft = 0
@@ -1225,6 +1293,8 @@ function boot() {
     if (document.hidden) clearHallucinationTimer()
     if (document.hidden) setRunning(false)
   })
+
+  switchLab(state.activeLab)
 }
 
 boot()
