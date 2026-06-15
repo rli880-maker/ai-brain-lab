@@ -443,6 +443,10 @@
               </div>
               <p id="trainingProgressCopy">最佳回复概率达到 80% 以上时，训练完成</p>
             </div>
+            <div class="training-tip">
+              <span class="training-tip-icon" aria-hidden="true">i</span>
+              <p>当最佳回复概率达到80%后，即可完成整个实验。</p>
+            </div>
           </article>
         </section>
 
@@ -455,6 +459,55 @@
           <p class="result-title">AI不是魔法</p>
           <p>AI是概率预测系统、记忆系统、检索系统、工具系统、反馈训练系统共同组成的智能体。</p>
         </section>
+
+        <div class="global-complete-action">
+          <button type="button" class="start-button complete-experiment-btn" id="trainingCompletionButton" disabled>
+            训练完成后解锁总结
+          </button>
+        </div>
+      </section>
+
+      <section class="completion-view" id="completionView" hidden aria-label="AI 大脑实验室完成总结">
+        <div class="completion-glow" aria-hidden="true"></div>
+        <header class="completion-hero">
+          <span class="completion-celebration" aria-hidden="true">🎉</span>
+          <div class="completion-badge">6 / 6 全部完成</div>
+          <h1>恭喜你完成 AI 大脑实验室！</h1>
+          <p>你已经看见了 AI 的基本运行过程。</p>
+        </header>
+
+        <section class="completion-learning-card">
+          <h2>你的学习成果</h2>
+          <ol class="completion-learning-list">
+            <li><strong>Token</strong><span>AI如何预测下一个词</span></li>
+            <li><strong>Memory</strong><span>AI为什么会记住，也会忘记</span></li>
+            <li><strong>RAG</strong><span>AI如何查资料再回答</span></li>
+            <li><strong>幻觉</strong><span>AI为什么会自信地说错</span></li>
+            <li><strong>Agent</strong><span>AI如何调用工具完成任务</span></li>
+            <li><strong>训练</strong><span>AI如何通过反馈变得更会回答</span></li>
+          </ol>
+        </section>
+
+        <section class="completion-conclusion-card">
+          <p class="completion-card-kicker">最终结论</p>
+          <h2>AI不是魔法。</h2>
+          <p>它更像是：</p>
+          <div class="completion-system-formula" aria-label="AI 系统组成">
+            <strong>概率预测</strong><span>×</span>
+            <strong>有限记忆</strong><span>×</span>
+            <strong>资料检索</strong><span>×</span>
+            <strong>工具调用</strong><span>×</span>
+            <strong>人类反馈训练</strong>
+          </div>
+          <p class="completion-final-line">共同组成的智能系统。</p>
+          <p>AI不是一个神秘黑盒。理解它的组成，就能更清楚地使用和判断它。</p>
+        </section>
+
+        <div class="completion-actions">
+          <button type="button" class="secondary-button" id="completionRestartButton">重新开始</button>
+          <button type="button" class="start-button" id="completionShareButton">分享给朋友</button>
+        </div>
+        <p class="completion-share-status" id="completionShareStatus" hidden aria-live="polite"></p>
       </section>
 
       <nav class="mobile-level-pager" aria-label="关卡切换">

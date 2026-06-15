@@ -200,7 +200,8 @@ const state = {
   trainingMessage: "AI会根据当前概率选择一个回复。你可以点按钮，也可以左右滑动回复卡片。",
   trainingLearned: false,
   trainingTouchStartX: 0,
-  trainingFeedbackTimer: null
+  trainingFeedbackTimer: null,
+  isComplete: false
 }
 
 const nodes = {
@@ -280,7 +281,12 @@ const nodes = {
   trainingProgressCard: document.querySelector("#trainingProgressCard"),
   trainingProgressValue: document.querySelector("#trainingProgressValue"),
   trainingProgressFill: document.querySelector("#trainingProgressFill"),
-  trainingProgressCopy: document.querySelector("#trainingProgressCopy")
+  trainingProgressCopy: document.querySelector("#trainingProgressCopy"),
+  trainingCompletionButton: document.querySelector("#trainingCompletionButton"),
+  completionView: document.querySelector("#completionView"),
+  completionRestartButton: document.querySelector("#completionRestartButton"),
+  completionShareButton: document.querySelector("#completionShareButton"),
+  completionShareStatus: document.querySelector("#completionShareStatus")
 }
 
 const context = nodes.canvas.getContext("2d")
@@ -384,7 +390,10 @@ function switchLab(lab) {
   if (!config) return
 
   const labIndex = labOrder.indexOf(lab)
+  state.isComplete = false
   state.activeLab = lab
+  nodes.completionView.hidden = true
+  document.body.classList.remove("completion-mode")
   nodes.runState.textContent = config.status
   document.title = `${config.title} - AI LAB`
 
@@ -402,10 +411,26 @@ function switchLab(lab) {
     option.setAttribute("aria-current", isActive ? "page" : "false")
   })
   nodes.mobileCurrentLab.textContent = `第${labIndex + 1}关 · ${config.mobileTitle}`
+  updateMobilePager()
+  closeMobileLabDrawer()
+}
+
+function updateMobilePager() {
+  if (state.isComplete) {
+    nodes.previousLabButton.hidden = true
+    nodes.mobileLevelProgress.hidden = true
+    nodes.nextLabButton.disabled = false
+    nodes.nextLabButton.textContent = "重新开始"
+    return
+  }
+
+  const labIndex = labOrder.indexOf(state.activeLab)
+  nodes.previousLabButton.hidden = false
+  nodes.mobileLevelProgress.hidden = false
   nodes.mobileLevelProgress.textContent = `${labIndex + 1} / ${labOrder.length}`
   nodes.previousLabButton.disabled = labIndex === 0
   nodes.nextLabButton.textContent = labIndex === labOrder.length - 1 ? "完成实验" : "下一关"
-  closeMobileLabDrawer()
+  nodes.nextLabButton.disabled = labIndex === labOrder.length - 1 && !state.trainingLearned
 }
 
 function openMobileLabDrawer() {
@@ -1078,6 +1103,12 @@ function renderTrainingLab() {
     item.appendChild(track)
     nodes.trainingProbabilityList.appendChild(item)
   })
+
+  nodes.trainingCompletionButton.disabled = !state.trainingLearned
+  nodes.trainingCompletionButton.textContent = state.trainingLearned
+    ? "完成实验"
+    : "训练完成后解锁总结"
+  updateMobilePager()
 }
 
 function applyTrainingFeedback(isGood) {
@@ -1106,6 +1137,82 @@ function resetTraining() {
   nodes.trainingFeedback.hidden = true
   nodes.runState.textContent = "训练实验待运行"
   renderTrainingLab()
+}
+
+function showCompletionPage() {
+  if (!state.trainingLearned) {
+    nodes.runState.textContent = "请先完成训练目标"
+    return
+  }
+
+  state.isComplete = true
+  clearTokenTimers()
+  clearRagTimer()
+  clearHallucinationTimer()
+  setRunning(false)
+  nodes.labViews.forEach((view) => view.classList.remove("is-active"))
+  nodes.completionView.hidden = false
+  nodes.completionShareStatus.hidden = true
+  document.body.classList.add("completion-mode")
+  document.title = "完成 AI 大脑实验室 - AI LAB"
+  closeMobileLabDrawer()
+  updateMobilePager()
+  window.scrollTo({ top: 0, behavior: "smooth" })
+}
+
+function restartExperience() {
+  clearTokenTimers()
+  clearRagTimer()
+  clearHallucinationTimer()
+  window.clearTimeout(state.trainingFeedbackTimer)
+  state.isComplete = false
+  state.tokens = []
+  state.selectedGuess = ""
+  state.activeTokenScene = tokenCases[0]
+  state.running = false
+  state.memoryItems = []
+  state.evictedItem = ""
+  nodes.input.value = tokenCases[0].text
+  nodes.memoryInput.value = ""
+  nodes.rememberButton.disabled = true
+  nodes.recallBox.textContent = "先放入几条信息，再让 AI 回忆。"
+  nodes.completionShareStatus.hidden = true
+
+  document.querySelectorAll(".memory-chip").forEach((chip) => {
+    chip.classList.remove("is-active")
+    chip.setAttribute("aria-pressed", "false")
+  })
+
+  try {
+    localStorage.removeItem("ai-lab-token-progress")
+    localStorage.removeItem("ai-lab-memory-items")
+  } catch (error) {
+    // Storage can be unavailable in private browsing or local file previews.
+  }
+
+  setProgress(0)
+  refreshTokenPreview()
+  renderMemoryLab()
+  resetAgent()
+  chooseRagQuestion(ragQuestions[0].id)
+  resetHallucinationLab()
+  resetTraining()
+  switchLab("token")
+  window.scrollTo({ top: 0, behavior: "smooth" })
+}
+
+async function shareCompletion() {
+  const currentUrl = window.location.href
+
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable")
+    await navigator.clipboard.writeText(currentUrl)
+    nodes.completionShareStatus.textContent = "链接已复制，可以分享给朋友。"
+  } catch (error) {
+    nodes.completionShareStatus.textContent = "当前浏览器不支持自动复制，请手动复制地址栏中的链接。"
+  }
+
+  nodes.completionShareStatus.hidden = false
 }
 
 function rewardTrainingReply(index) {
@@ -1226,6 +1333,9 @@ function boot() {
   nodes.trainingBadButton.addEventListener("click", () => applyTrainingFeedback(false))
   nodes.trainingGoodButton.addEventListener("click", () => applyTrainingFeedback(true))
   nodes.trainingResetButton.addEventListener("click", resetTraining)
+  nodes.trainingCompletionButton.addEventListener("click", showCompletionPage)
+  nodes.completionRestartButton.addEventListener("click", restartExperience)
+  nodes.completionShareButton.addEventListener("click", shareCompletion)
   nodes.trainingReplyCard.addEventListener("touchstart", (event) => {
     state.trainingTouchStartX = event.changedTouches[0].clientX
   }, { passive: true })
@@ -1254,12 +1364,17 @@ function boot() {
     if (currentIndex > 0) switchLab(labOrder[currentIndex - 1])
   })
   nodes.nextLabButton.addEventListener("click", () => {
+    if (state.isComplete) {
+      restartExperience()
+      return
+    }
+
     const currentIndex = labOrder.indexOf(state.activeLab)
     if (currentIndex < labOrder.length - 1) {
       switchLab(labOrder[currentIndex + 1])
       return
     }
-    nodes.runState.textContent = "六关实验已完成"
+    showCompletionPage()
   })
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && nodes.mobileLabDrawer.classList.contains("is-open")) {
