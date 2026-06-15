@@ -113,20 +113,37 @@ const ragDocs = [
   { id: "d3", title: "资料卡 C", text: "小明养了一只猫" }
 ]
 
-const hallucinationQuestions = [
+const hallucinationRounds = [
   {
-    id: "color",
-    text: "小明最喜欢什么颜色？",
-    docIds: [],
-    answer: "AI：小明最喜欢蓝色。",
-    note: "资料库里没有小明喜欢什么颜色的信息。这个“蓝色”其实是 AI 在猜。"
+    id: "months",
+    title: "明显错误",
+    tag: "判断真假",
+    question: "一年有多少个月？",
+    answer: "一年有13个月。",
+    type: "judgment",
+    explanation: "这是错的。一年有12个月。AI生成了一个看起来像答案的内容，但实际上完全错误。",
+    reminder: "这就是最简单的 AI 幻觉。"
+  },
+  {
+    id: "sunrise",
+    title: "明显错误",
+    tag: "判断事实",
+    question: "太阳从哪里升起？",
+    answer: "太阳每天从西边升起。",
+    type: "judgment",
+    explanation: "这是错的。太阳从东边升起。AI不会自动判断真假，它可能生成语法正确、但事实错误的答案。",
+    reminder: "语言通顺，不代表内容真实。"
+  },
+  {
+    id: "penguin",
+    title: "真实幻觉",
+    tag: "警惕虚构细节",
+    question: "企鹅会飞吗？",
+    answer: "会。\n\n企鹅能够连续飞行数百公里，最高时速可达120公里。",
+    type: "judgment",
+    explanation: "这是错的。企鹅不会飞。AI不仅给出了错误答案，还继续补充了距离和速度等虚构细节。",
+    reminder: "这就是最危险的 AI 幻觉：细节越多，错误看起来越真实。"
   }
-]
-
-const hallucinationDocs = [
-  { id: "d1", title: "资料卡 A", text: "小明喜欢足球" },
-  { id: "d2", title: "资料卡 B", text: "小明住上海" },
-  { id: "d3", title: "资料卡 C", text: "小明养了一只猫" }
 ]
 
 const bestTrainingReplyIndex = 2
@@ -172,10 +189,11 @@ const state = {
   activeRagQuestionId: "favorite",
   ragHitIds: [],
   ragTimer: null,
-  activeHallucinationQuestionId: "color",
-  hallucinationHitIds: [],
+  hallucinationRoundIndex: 0,
+  hallucinationPhase: "ready",
+  hallucinationSelection: null,
+  hallucinationSelectionCorrect: false,
   hallucinationTimer: null,
-  hallucinationIsRisky: false,
   trainingReplies: initialTrainingReplies.map((reply) => ({ ...reply })),
   trainingCurrentReplyIndex: 0,
   trainingProgress: 0,
@@ -233,15 +251,23 @@ const nodes = {
   ragStatus: document.querySelector("#ragStatus"),
   ragDocList: document.querySelector("#ragDocList"),
   ragAnswer: document.querySelector("#ragAnswer"),
-  hallucinationRisk: document.querySelector("#hallucinationRisk"),
-  hallucinationQuestionList: document.querySelector("#hallucinationQuestionList"),
+  hallucinationRoundBadge: document.querySelector("#hallucinationRoundBadge"),
+  hallucinationRoundTrack: document.querySelector("#hallucinationRoundTrack"),
+  hallucinationRoundNumber: document.querySelector("#hallucinationRoundNumber"),
+  hallucinationRoundTitle: document.querySelector("#hallucinationRoundTitle"),
+  hallucinationRoundTag: document.querySelector("#hallucinationRoundTag"),
+  hallucinationQuestion: document.querySelector("#hallucinationQuestion"),
+  hallucinationAiCard: document.querySelector("#hallucinationAiCard"),
+  hallucinationAiState: document.querySelector("#hallucinationAiState"),
+  hallucinationGenerating: document.querySelector("#hallucinationGenerating"),
+  hallucinationAnswerContent: document.querySelector("#hallucinationAnswerContent"),
   hallucinationRunButton: document.querySelector("#hallucinationRunButton"),
-  hallucinationStatus: document.querySelector("#hallucinationStatus"),
-  hallucinationWarning: document.querySelector("#hallucinationWarning"),
-  hallucinationDocList: document.querySelector("#hallucinationDocList"),
-  hallucinationConfidence: document.querySelector("#hallucinationConfidence"),
-  hallucinationAnswer: document.querySelector("#hallucinationAnswer"),
-  hallucinationNote: document.querySelector("#hallucinationNote"),
+  hallucinationJudgmentActions: document.querySelector("#hallucinationJudgmentActions"),
+  hallucinationJudgmentButtons: document.querySelectorAll(".hallucination-judge"),
+  hallucinationFeedback: document.querySelector("#hallucinationFeedback"),
+  hallucinationNextButton: document.querySelector("#hallucinationNextButton"),
+  hallucinationSummary: document.querySelector("#hallucinationSummary"),
+  hallucinationResetButton: document.querySelector("#hallucinationResetButton"),
   trainingProgressBadge: document.querySelector("#trainingProgressBadge"),
   trainingMessage: document.querySelector("#trainingMessage"),
   trainingReplyCard: document.querySelector("#trainingReplyCard"),
@@ -896,91 +922,111 @@ function clearRagTimer() {
 }
 
 function renderHallucinationLab() {
-  nodes.hallucinationRisk.textContent = state.hallucinationIsRisky ? "高" : "?"
-  nodes.hallucinationQuestionList.innerHTML = ""
+  const round = hallucinationRounds[state.hallucinationRoundIndex]
+  const isComplete = state.hallucinationPhase === "complete"
+  const isGenerating = state.hallucinationPhase === "generating"
+  const hasAnswer = state.hallucinationPhase === "answer" || state.hallucinationPhase === "feedback"
+  const hasFeedback = state.hallucinationPhase === "feedback"
 
-  hallucinationQuestions.forEach((question) => {
-    const button = document.createElement("button")
-    button.type = "button"
-    button.className = `hallucination-question-button${state.activeHallucinationQuestionId === question.id ? " is-active" : ""}`
-    button.textContent = question.text
-    button.addEventListener("click", () => chooseHallucinationQuestion(question.id))
-    nodes.hallucinationQuestionList.appendChild(button)
+  nodes.hallucinationRoundBadge.textContent = isComplete ? "✓" : String(state.hallucinationRoundIndex + 1)
+  nodes.hallucinationSummary.hidden = !isComplete
+  document.querySelector("#hallucinationGame").hidden = isComplete
+
+  nodes.hallucinationRoundTrack.innerHTML = ""
+  hallucinationRounds.forEach((item, index) => {
+    const step = document.createElement("span")
+    step.className = "hallucination-track-step"
+    if (isComplete || index < state.hallucinationRoundIndex) step.classList.add("is-complete")
+    if (!isComplete && index === state.hallucinationRoundIndex) step.classList.add("is-current")
+    step.title = `第${index + 1}轮：${item.title}`
+    nodes.hallucinationRoundTrack.appendChild(step)
   })
 
-  nodes.hallucinationDocList.innerHTML = ""
-  hallucinationDocs.forEach((doc) => {
-    const card = document.createElement("div")
-    card.className = `hallucination-doc-card${state.hallucinationHitIds.includes(doc.id) ? " is-hit" : ""}`
+  if (isComplete) return
 
-    const title = document.createElement("span")
-    title.className = "hallucination-doc-title"
-    title.textContent = doc.title
+  nodes.hallucinationRoundNumber.textContent = `第${state.hallucinationRoundIndex + 1}轮`
+  nodes.hallucinationRoundTitle.textContent = round.title
+  nodes.hallucinationRoundTag.textContent = round.tag
+  nodes.hallucinationQuestion.textContent = round.question
+  nodes.hallucinationAiState.textContent = isGenerating ? "🤖 AI正在生成..." : hasAnswer ? "🤖 AI自信回答" : "等待生成"
+  nodes.hallucinationGenerating.hidden = !isGenerating
+  nodes.hallucinationAnswerContent.hidden = isGenerating
+  nodes.hallucinationAiCard.classList.toggle("is-confident", hasAnswer)
+  nodes.hallucinationRunButton.hidden = state.hallucinationPhase !== "ready"
+  nodes.hallucinationRunButton.disabled = isGenerating
+  nodes.hallucinationJudgmentActions.hidden = state.hallucinationPhase !== "answer"
+  nodes.hallucinationFeedback.hidden = !hasFeedback
+  nodes.hallucinationNextButton.hidden = !hasFeedback
 
-    const text = document.createElement("span")
-    text.className = "hallucination-doc-text"
-    text.textContent = doc.text
+  nodes.hallucinationAnswerContent.textContent = hasAnswer
+    ? round.answer
+    : "点击下方按钮，看看 AI 会多自信地回答。"
 
-    card.append(title, text)
-    nodes.hallucinationDocList.appendChild(card)
-  })
-
-  nodes.hallucinationStatus.classList.toggle("is-danger", state.hallucinationIsRisky)
-  nodes.hallucinationConfidence.classList.toggle("is-danger", state.hallucinationIsRisky)
-  nodes.hallucinationAnswer.classList.toggle("is-danger", state.hallucinationIsRisky)
-  nodes.hallucinationNote.classList.toggle("is-danger", state.hallucinationIsRisky)
-  nodes.hallucinationRunButton.classList.toggle("is-danger", state.hallucinationIsRisky)
-}
-
-function chooseHallucinationQuestion(questionId) {
-  clearHallucinationTimer()
-  state.activeHallucinationQuestionId = questionId
-  state.hallucinationHitIds = []
-  state.hallucinationIsRisky = false
-  nodes.hallucinationStatus.textContent = "问题已放入 AI 大脑，下一步让 AI 查资料并回答。"
-  nodes.hallucinationWarning.hidden = true
-  nodes.hallucinationWarning.textContent = ""
-  nodes.hallucinationAnswer.textContent = "AI：我还没有开始回答。"
-  nodes.hallucinationConfidence.textContent = "可信度：等待实验"
-  nodes.hallucinationNote.hidden = true
-  nodes.hallucinationNote.textContent = ""
-  nodes.hallucinationRunButton.disabled = false
-  nodes.hallucinationRunButton.querySelector("span:last-child").textContent = "让 AI 回答"
-  renderHallucinationLab()
+  if (hasFeedback) {
+    nodes.hallucinationFeedback.className = `hallucination-feedback ${state.hallucinationSelectionCorrect ? "is-correct" : "is-wrong"}`
+    nodes.hallucinationFeedback.innerHTML = `
+      <strong>${state.hallucinationSelectionCorrect ? "判断正确" : "判断错误"}</strong>
+      ${round.explanation}
+      <span class="hallucination-reminder">${round.reminder}</span>
+    `
+    nodes.hallucinationNextButton.textContent =
+      state.hallucinationRoundIndex === hallucinationRounds.length - 1 ? "查看最终总结" : "进入下一轮"
+  }
 }
 
 function startHallucinationAnswer() {
   clearHallucinationTimer()
-  const question = hallucinationQuestions.find((item) => item.id === state.activeHallucinationQuestionId) || hallucinationQuestions[0]
-  state.hallucinationHitIds = []
-  state.hallucinationIsRisky = false
-  nodes.hallucinationStatus.textContent = "AI 正在资料库里找证据..."
-  nodes.hallucinationWarning.hidden = true
-  nodes.hallucinationWarning.textContent = ""
-  nodes.hallucinationAnswer.textContent = "AI：先等等，我正在找资料。"
-  nodes.hallucinationConfidence.textContent = "可信度：计算中"
-  nodes.hallucinationNote.hidden = true
-  nodes.hallucinationNote.textContent = ""
-  nodes.hallucinationRunButton.disabled = true
-  nodes.hallucinationRunButton.querySelector("span:last-child").textContent = "正在思考"
+  if (state.hallucinationPhase !== "ready") return
+
+  state.hallucinationPhase = "generating"
+  state.hallucinationSelection = null
+  state.hallucinationSelectionCorrect = false
+  nodes.runState.textContent = "AI 正在自信生成"
   renderHallucinationLab()
 
   state.hallucinationTimer = setTimeout(() => {
-    const hasDocs = question.docIds.length > 0
-    state.hallucinationHitIds = question.docIds
-    state.hallucinationIsRisky = !hasDocs
-    nodes.hallucinationStatus.textContent = hasDocs ? "找到资料，AI 根据资料回答。" : "没有找到相关资料，AI 开始概率猜测。"
-    nodes.hallucinationWarning.hidden = hasDocs
-    nodes.hallucinationWarning.textContent = hasDocs ? "" : "⚠️ AI没有找到资料，开始概率猜测"
-    nodes.hallucinationAnswer.textContent = question.answer
-    nodes.hallucinationConfidence.textContent = hasDocs ? "可信度：有资料支持" : "可信度：很低，可能是幻觉"
-    nodes.hallucinationNote.hidden = false
-    nodes.hallucinationNote.textContent = question.note
-    nodes.hallucinationRunButton.disabled = false
-    nodes.hallucinationRunButton.querySelector("span:last-child").textContent = "重新实验"
-    nodes.runState.textContent = hasDocs ? "回答有依据" : "发现幻觉风险"
+    state.hallucinationPhase = "answer"
+    state.hallucinationTimer = null
+    nodes.runState.textContent = "请判断 AI 的回答"
     renderHallucinationLab()
-  }, 650)
+  }, 700)
+}
+
+function judgeHallucinationAnswer(judgment) {
+  const round = hallucinationRounds[state.hallucinationRoundIndex]
+  if (state.hallucinationPhase !== "answer" || round.type !== "judgment") return
+
+  state.hallucinationSelection = judgment
+  state.hallucinationSelectionCorrect = judgment === "false"
+  state.hallucinationPhase = "feedback"
+  nodes.runState.textContent = state.hallucinationSelectionCorrect ? "你识破了 AI 幻觉" : "这个答案其实是错的"
+  renderHallucinationLab()
+}
+
+function advanceHallucinationRound() {
+  if (state.hallucinationPhase !== "feedback") return
+
+  if (state.hallucinationRoundIndex === hallucinationRounds.length - 1) {
+    state.hallucinationPhase = "complete"
+    nodes.runState.textContent = "三轮幻觉挑战完成"
+  } else {
+    state.hallucinationRoundIndex += 1
+    state.hallucinationPhase = "ready"
+    state.hallucinationSelection = null
+    state.hallucinationSelectionCorrect = false
+    nodes.runState.textContent = `进入第${state.hallucinationRoundIndex + 1}轮`
+  }
+  renderHallucinationLab()
+}
+
+function resetHallucinationLab() {
+  clearHallucinationTimer()
+  state.hallucinationRoundIndex = 0
+  state.hallucinationPhase = "ready"
+  state.hallucinationSelection = null
+  state.hallucinationSelectionCorrect = false
+  nodes.runState.textContent = "幻觉实验待运行"
+  renderHallucinationLab()
 }
 
 function clearHallucinationTimer() {
@@ -1172,6 +1218,11 @@ function boot() {
   nodes.agentResetButton.addEventListener("click", resetAgent)
   nodes.ragSearchButton.addEventListener("click", startRagSearch)
   nodes.hallucinationRunButton.addEventListener("click", startHallucinationAnswer)
+  nodes.hallucinationJudgmentButtons.forEach((button) => {
+    button.addEventListener("click", () => judgeHallucinationAnswer(button.dataset.judgment))
+  })
+  nodes.hallucinationNextButton.addEventListener("click", advanceHallucinationRound)
+  nodes.hallucinationResetButton.addEventListener("click", resetHallucinationLab)
   nodes.trainingBadButton.addEventListener("click", () => applyTrainingFeedback(false))
   nodes.trainingGoodButton.addEventListener("click", () => applyTrainingFeedback(true))
   nodes.trainingResetButton.addEventListener("click", resetTraining)
