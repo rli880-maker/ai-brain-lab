@@ -1514,11 +1514,15 @@ h2 {
 }
 
 .training-game-card {
+  width: 100%;
+  max-width: 100%;
   padding: 22px;
   border: 1px solid #dbe4ef;
   border-radius: 20px;
+  box-sizing: border-box;
   background: #fff;
   box-shadow: 0 16px 42px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
 }
 
 .training-phase-head,
@@ -1590,7 +1594,10 @@ h2 {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 16px;
+  width: 100%;
+  max-width: 100%;
   margin-top: 20px;
+  box-sizing: border-box;
 }
 
 .training-user-card,
@@ -1962,18 +1969,23 @@ h2 {
 .training-stage-summary,
 .training-comparison-card,
 .training-final-summary {
+  width: 100%;
+  max-width: 100%;
   margin-top: 16px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .training-stage-summary p:not(.result-title),
 .training-comparison-card p {
+  max-width: 100%;
   color: #475569;
   font-size: 15px;
   font-weight: 650;
   line-height: 1.65;
   white-space: normal;
-  word-break: keep-all;
-  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .training-next-stage {
@@ -1985,14 +1997,23 @@ h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  width: 100%;
+  max-width: 100%;
   margin: 14px 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .training-compare-grid div {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   padding: 14px;
   border: 1px solid #dbe4ef;
   border-radius: 12px;
+  box-sizing: border-box;
   background: #fff;
+  overflow: hidden;
 }
 
 .training-compare-grid span {
@@ -2004,9 +2025,13 @@ h2 {
 }
 
 .training-compare-grid p {
+  max-width: 100%;
   margin: 0;
   color: #0f172a;
   font-weight: 800;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .global-complete-action {
@@ -2689,7 +2714,11 @@ body.completion-mode .top-header {
   }
 
   .training-game-card {
+    width: 100%;
+    max-width: 100%;
     padding: 16px;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
   .training-phase-head,
@@ -2705,6 +2734,29 @@ body.completion-mode .top-header {
   .training-flow-grid,
   .training-compare-grid {
     grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .training-comparison-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px;
+  }
+
+  .training-compare-grid div {
+    width: 100%;
+    max-width: 100%;
+    padding: 16px;
+  }
+
+  .training-compare-grid p,
+  .training-comparison-card > p {
+    font-size: 16px;
+    line-height: 1.6;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
 
   .training-progress-card {
