@@ -378,8 +378,8 @@
         <section class="hero-band">
           <div>
             <p class="kicker">第六关</p>
-            <h1>训练AI怎么回答</h1>
-            <p class="subtitle">AI一开始不会判断什么回答更合适。你给它反馈后，它会慢慢提高好回答的概率。</p>
+            <h1>训练AI怎么好好回答</h1>
+            <p class="subtitle">AI会根据你的反馈调整回答概率。好的反馈让它更会回答，错误反馈也可能把它训练坏。</p>
           </div>
           <div class="level-badge training-badge" aria-label="训练进度">
             <span id="trainingProgressBadge">0%</span>
@@ -387,77 +387,92 @@
           </div>
         </section>
 
-        <section class="training-stage" aria-label="聊天反馈训练">
-          <article class="stage-panel">
-            <header>
-              <span class="step">1</span>
-              <h2>用户消息</h2>
-            </header>
-            <div class="training-chat-row">
-              <span class="training-chat-label">用户</span>
-              <p class="training-user-bubble">我今天考试没考好。</p>
+        <section class="training-game" aria-label="三阶段反馈训练小游戏">
+          <article class="training-game-card">
+            <div class="training-phase-head">
+              <div>
+                <p class="training-phase-kicker" id="trainingPhaseKicker">训练阶段 1 / 3</p>
+                <h2 id="trainingRoundTitle">阶段1：支持性回应训练</h2>
+                <p id="trainingRoundSubtitle">让AI学习：遇到低落或自责时，先支持，再一起找补救办法。</p>
+              </div>
+              <div class="training-round-meter" id="trainingRoundTrack" aria-label="训练阶段进度"></div>
             </div>
-            <div class="training-message" id="trainingMessage">AI会根据当前概率选择一个回复。你可以点按钮，也可以左右滑动回复卡片。</div>
-          </article>
 
-          <article class="stage-panel">
-            <header>
-              <span class="step">2</span>
-              <h2>AI回复卡片</h2>
-            </header>
-            <div class="training-reply-card" id="trainingReplyCard">
-              <span class="training-reply-label">AI当前回复</span>
-              <p id="trainingReplyText">哈哈哈，那也太惨了吧</p>
-              <small>左滑惩罚 -10　右滑奖励 +100</small>
-              <span class="training-feedback" id="trainingFeedback" hidden></span>
+            <div class="training-flow-grid">
+              <section class="training-user-card">
+                <span class="training-card-label">用户消息</span>
+                <p id="trainingUserMessage">我今天做砸了一件很重要的事。</p>
+              </section>
+
+              <section class="training-ai-panel">
+                <div class="training-reply-card" id="trainingReplyCard">
+                  <span class="training-reply-label" id="trainingAiState">AI正在生成...</span>
+                  <p id="trainingReplyText">那你也太不小心了吧</p>
+                  <small>根据当前概率，AI会更容易选择高概率回复。</small>
+                  <span class="training-feedback" id="trainingFeedback" hidden></span>
+                </div>
+
+                <div class="training-actions">
+                  <button type="button" class="training-action training-bad" id="trainingBadButton">不合适 👎</button>
+                  <button type="button" class="training-action training-good" id="trainingGoodButton">合适 👍</button>
+                </div>
+                <button type="button" class="secondary-button training-reset" id="trainingResetButton">重置本关训练</button>
+              </section>
             </div>
-            <div class="training-actions">
-              <button type="button" class="training-action training-bad" id="trainingBadButton">不合适 👎</button>
-              <button type="button" class="training-action training-good" id="trainingGoodButton">合适 👍</button>
-              <button type="button" class="secondary-button training-reset" id="trainingResetButton">重置</button>
+
+            <div class="training-warning" id="trainingWarning" hidden>
+              <strong>⚠️ 错误反馈也会训练AI。</strong>
+              <p>如果你奖励了不好的回答，AI会以为这种回答更应该出现。</p>
             </div>
+
+            <section class="training-probability-panel">
+              <div class="training-panel-head">
+                <div>
+                  <span class="training-card-label">概率条变化</span>
+                  <h3>候选AI回复</h3>
+                </div>
+                <div class="training-progress-card" id="trainingProgressCard">
+                  <div class="training-progress-head">
+                    <span>本阶段目标</span>
+                    <strong id="trainingProgressValue">20%</strong>
+                  </div>
+                  <div class="training-progress-track">
+                    <div class="training-progress-fill" id="trainingProgressFill"></div>
+                  </div>
+                  <p id="trainingProgressCopy">把最佳回复训练到 70% 以上。</p>
+                </div>
+              </div>
+              <div class="training-probability-list" id="trainingProbabilityList"></div>
+            </section>
+
+            <section class="training-stage-summary" id="trainingStageSummary" hidden>
+              <p class="result-title">本轮总结</p>
+              <p id="trainingStageSummaryText"></p>
+              <button type="button" class="start-button training-next-stage" id="trainingNextStageButton">
+                进入第二阶段
+              </button>
+            </section>
+
+            <section class="training-comparison-card" id="trainingComparisonCard" hidden>
+              <p class="result-title">训练前后有什么不同？</p>
+              <div class="training-compare-grid">
+                <div>
+                  <span>训练前的AI</span>
+                  <p>那你也太不小心了吧。</p>
+                </div>
+                <div>
+                  <span>训练后的AI</span>
+                  <p>先别急着否定自己，我们可以看看哪里出了问题，再想补救办法。</p>
+                </div>
+              </div>
+              <p>反馈改变了AI的回答倾向。被奖励的回答更容易再次出现，被惩罚的回答出现概率会降低。</p>
+            </section>
           </article>
         </section>
 
-        <section class="training-stage" aria-label="概率和进度">
-          <article class="stage-panel">
-            <header>
-              <span class="step">3</span>
-              <h2>候选回复概率</h2>
-            </header>
-            <div class="training-probability-list" id="trainingProbabilityList"></div>
-          </article>
-
-          <article class="stage-panel">
-            <header>
-              <span class="step">4</span>
-              <h2>训练进度</h2>
-            </header>
-            <div class="training-progress-card" id="trainingProgressCard">
-              <div class="training-progress-head">
-                <span>训练进度</span>
-                <strong id="trainingProgressValue">0%</strong>
-              </div>
-              <div class="training-progress-track">
-                <div class="training-progress-fill" id="trainingProgressFill"></div>
-              </div>
-              <p id="trainingProgressCopy">最佳回复概率达到 80% 以上时，训练完成</p>
-            </div>
-            <div class="training-tip">
-              <span class="training-tip-icon" aria-hidden="true">i</span>
-              <p>当最佳回复概率达到80%后，即可完成整个实验。</p>
-            </div>
-          </article>
-        </section>
-
-        <section class="result-panel" aria-live="polite">
+        <section class="result-panel training-final-summary" id="trainingFinalSummary" aria-live="polite" hidden>
           <p class="result-title">你刚刚训练了AI</p>
-          <p>AI一开始会根据概率随机选择回答。你的反馈会改变这些概率。好的回答被奖励后，更容易再次出现。不好的回答被惩罚后，出现机会会变少。这就是AI训练的基本感觉。</p>
-        </section>
-
-        <section class="result-panel" aria-live="polite">
-          <p class="result-title">AI不是魔法</p>
-          <p>AI是概率预测系统、记忆系统、检索系统、工具系统、反馈训练系统共同组成的智能体。</p>
+          <p>AI训练不是让AI突然拥有理解力。而是通过一次次反馈，不断调整回答出现的概率。好的反馈让AI更会回答。错误反馈也可能让AI学坏。所以：AI训练 = 反馈 + 概率调整。</p>
         </section>
 
         <div class="global-complete-action">

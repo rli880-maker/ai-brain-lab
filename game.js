@@ -146,29 +146,51 @@ const hallucinationRounds = [
   }
 ]
 
-const bestTrainingReplyIndex = 2
-
-const initialTrainingReplies = [
+const trainingRounds = [
   {
-    id: "laugh",
-    text: "哈哈哈，那也太惨了吧",
-    probability: 40
+    title: "阶段1：支持性回应训练",
+    subtitle: "让AI学习：遇到低落或自责时，先支持，再一起找补救办法。",
+    userMessage: "我今天做砸了一件很重要的事。",
+    threshold: 70,
+    nextLabel: "进入第二阶段",
+    completeStatus: "第一阶段训练完成",
+    summary: "AI正在学习：面对低落或自责的用户时，更好的回答不是责怪，而是先支持对方，再帮助对方思考补救办法。",
+    replies: [
+      { id: "blame", text: "那你也太不小心了吧", probability: 40 },
+      { id: "dismiss", text: "别想了，过去就过去了", probability: 30 },
+      { id: "support", text: "先别急着否定自己，我们可以看看哪里出了问题，再想补救办法", probability: 20, best: true },
+      { id: "unknown", text: "我不知道该说什么", probability: 10 }
+    ]
   },
   {
-    id: "try",
-    text: "那你下次努力",
-    probability: 30
+    title: "阶段2：问题拆解训练",
+    subtitle: "让AI学习：面对混乱的问题时，把它拆成可以执行的步骤。",
+    userMessage: "我有好多事情要做，不知道该先做哪一个。",
+    threshold: 70,
+    nextLabel: "进入第三阶段",
+    completeStatus: "第二阶段训练完成",
+    summary: "AI正在学习：面对混乱的问题时，更好的回答不是敷衍，而是帮助用户把问题拆成可以执行的步骤。",
+    replies: [
+      { id: "random", text: "随便挑一个开始吧", probability: 35 },
+      { id: "phone", text: "先刷会儿手机放松一下", probability: 25 },
+      { id: "sort", text: "可以先列出所有任务，再按紧急程度和重要程度排序", probability: 25, best: true },
+      { id: "avoid", text: "那就先别做了", probability: 15 }
+    ]
   },
   {
-    id: "support",
-    text: "这次没考好不代表你不行，我们可以一起看看哪里出了问题",
-    probability: 20,
-    best: true
-  },
-  {
-    id: "unknown",
-    text: "我不知道该说什么",
-    probability: 10
+    title: "阶段3：错误反馈训练",
+    subtitle: "这一轮会看到：奖励错误回答，也会把AI带偏。",
+    userMessage: "我迟到了，想找个理由糊弄过去。",
+    threshold: 70,
+    nextLabel: "完成训练",
+    completeStatus: "第六关训练完成",
+    summary: "AI正在学习：反馈会影响AI下次更可能说什么。好的反馈让AI更可靠，错误反馈也可能让AI学到不好的回答方式。",
+    replies: [
+      { id: "excuse", text: "你可以随便编一个借口", probability: 35 },
+      { id: "serious", text: "就说路上出了很严重的事", probability: 20 },
+      { id: "honest", text: "诚实说明情况，并尽量补救影响", probability: 30, best: true },
+      { id: "ignore", text: "别管了，反正已经迟到了", probability: 15 }
+    ]
   }
 ]
 
@@ -194,13 +216,17 @@ const state = {
   hallucinationSelection: null,
   hallucinationSelectionCorrect: false,
   hallucinationTimer: null,
-  trainingReplies: initialTrainingReplies.map((reply) => ({ ...reply })),
+  trainingRoundIndex: 0,
+  trainingReplies: trainingRounds[0].replies.map((reply) => ({ ...reply })),
   trainingCurrentReplyIndex: 0,
-  trainingProgress: 0,
-  trainingMessage: "AI会根据当前概率选择一个回复。你可以点按钮，也可以左右滑动回复卡片。",
+  trainingProgress: trainingRounds[0].replies.find((reply) => reply.best).probability,
+  trainingPhaseComplete: false,
+  trainingAiGenerating: false,
+  trainingWarningVisible: false,
   trainingLearned: false,
   trainingTouchStartX: 0,
   trainingFeedbackTimer: null,
+  trainingGenerateTimer: null,
   isComplete: false
 }
 
@@ -270,7 +296,12 @@ const nodes = {
   hallucinationSummary: document.querySelector("#hallucinationSummary"),
   hallucinationResetButton: document.querySelector("#hallucinationResetButton"),
   trainingProgressBadge: document.querySelector("#trainingProgressBadge"),
-  trainingMessage: document.querySelector("#trainingMessage"),
+  trainingPhaseKicker: document.querySelector("#trainingPhaseKicker"),
+  trainingRoundTitle: document.querySelector("#trainingRoundTitle"),
+  trainingRoundSubtitle: document.querySelector("#trainingRoundSubtitle"),
+  trainingRoundTrack: document.querySelector("#trainingRoundTrack"),
+  trainingUserMessage: document.querySelector("#trainingUserMessage"),
+  trainingAiState: document.querySelector("#trainingAiState"),
   trainingReplyCard: document.querySelector("#trainingReplyCard"),
   trainingReplyText: document.querySelector("#trainingReplyText"),
   trainingFeedback: document.querySelector("#trainingFeedback"),
@@ -282,6 +313,12 @@ const nodes = {
   trainingProgressValue: document.querySelector("#trainingProgressValue"),
   trainingProgressFill: document.querySelector("#trainingProgressFill"),
   trainingProgressCopy: document.querySelector("#trainingProgressCopy"),
+  trainingWarning: document.querySelector("#trainingWarning"),
+  trainingStageSummary: document.querySelector("#trainingStageSummary"),
+  trainingStageSummaryText: document.querySelector("#trainingStageSummaryText"),
+  trainingNextStageButton: document.querySelector("#trainingNextStageButton"),
+  trainingComparisonCard: document.querySelector("#trainingComparisonCard"),
+  trainingFinalSummary: document.querySelector("#trainingFinalSummary"),
   trainingCompletionButton: document.querySelector("#trainingCompletionButton"),
   completionView: document.querySelector("#completionView"),
   completionRestartButton: document.querySelector("#completionRestartButton"),
@@ -1062,23 +1099,53 @@ function clearHallucinationTimer() {
 }
 
 function renderTrainingLab() {
+  const round = getCurrentTrainingRound()
   const currentReply = state.trainingReplies[state.trainingCurrentReplyIndex]
-  nodes.trainingProgressBadge.textContent = `${state.trainingProgress}%`
-  nodes.trainingMessage.textContent = state.trainingMessage
-  nodes.trainingMessage.classList.toggle("is-learned", state.trainingLearned)
+  const bestProbability = getBestTrainingProbability()
+
+  nodes.trainingProgressBadge.textContent = state.trainingLearned
+    ? "100%"
+    : `${state.trainingRoundIndex + 1}/3`
+  nodes.trainingPhaseKicker.textContent = `训练阶段 ${state.trainingRoundIndex + 1} / ${trainingRounds.length}`
+  nodes.trainingRoundTitle.textContent = round.title
+  nodes.trainingRoundSubtitle.textContent = round.subtitle
+  nodes.trainingUserMessage.textContent = round.userMessage
+  nodes.trainingAiState.textContent = state.trainingAiGenerating ? "AI正在生成..." : "AI当前回答："
   nodes.trainingReplyCard.classList.toggle("is-learned", state.trainingLearned)
-  nodes.trainingReplyText.textContent = currentReply.text
-  nodes.trainingProgressValue.textContent = `${state.trainingProgress}%`
-  nodes.trainingProgressFill.style.width = `${state.trainingProgress}%`
-  nodes.trainingProgressCard.classList.toggle("is-learned", state.trainingLearned)
-  nodes.trainingProgressCopy.textContent = state.trainingLearned
-    ? "AI更会回答了"
-    : "最佳回复概率达到 80% 以上时，训练完成"
+  nodes.trainingReplyCard.classList.toggle("is-generating", state.trainingAiGenerating)
+  nodes.trainingReplyText.textContent = state.trainingAiGenerating ? "..." : currentReply.text
+  nodes.trainingBadButton.disabled = state.trainingPhaseComplete || state.trainingAiGenerating || state.trainingLearned
+  nodes.trainingGoodButton.disabled = state.trainingPhaseComplete || state.trainingAiGenerating || state.trainingLearned
+  nodes.trainingProgressValue.textContent = `${bestProbability}%`
+  nodes.trainingProgressFill.style.width = `${bestProbability}%`
+  nodes.trainingProgressCard.classList.toggle("is-learned", state.trainingPhaseComplete || state.trainingLearned)
+  nodes.trainingProgressCopy.textContent = state.trainingPhaseComplete
+    ? `本阶段完成：最佳回复已达到 ${bestProbability}%。`
+    : `把最佳回复训练到 ${round.threshold}% 以上。当前 ${bestProbability}%。`
+  nodes.trainingWarning.hidden = !state.trainingWarningVisible
+  nodes.trainingStageSummary.hidden = !state.trainingPhaseComplete
+  nodes.trainingStageSummaryText.textContent = round.summary
+  nodes.trainingNextStageButton.textContent = round.nextLabel
+  nodes.trainingNextStageButton.hidden = state.trainingLearned
+  nodes.trainingComparisonCard.hidden = !state.trainingLearned
+  nodes.trainingFinalSummary.hidden = !state.trainingLearned
+
+  nodes.trainingRoundTrack.innerHTML = ""
+  trainingRounds.forEach((_, index) => {
+    const dot = document.createElement("span")
+    dot.className = "training-round-dot"
+    if (index < state.trainingRoundIndex || state.trainingLearned) dot.classList.add("is-complete")
+    if (index === state.trainingRoundIndex && !state.trainingLearned) dot.classList.add("is-current")
+    dot.textContent = String(index + 1)
+    nodes.trainingRoundTrack.appendChild(dot)
+  })
 
   nodes.trainingProbabilityList.innerHTML = ""
-  state.trainingReplies.forEach((reply) => {
+  state.trainingReplies.forEach((reply, index) => {
     const item = document.createElement("div")
-    item.className = `training-probability-item${reply.best ? " is-best" : ""}`
+    item.className = "training-probability-item"
+    if (reply.best) item.classList.add("is-best")
+    if (index === state.trainingCurrentReplyIndex && !state.trainingAiGenerating) item.classList.add("is-current")
 
     const head = document.createElement("div")
     head.className = "training-probability-head"
@@ -1112,30 +1179,69 @@ function renderTrainingLab() {
 }
 
 function applyTrainingFeedback(isGood) {
+  if (state.trainingPhaseComplete || state.trainingAiGenerating || state.trainingLearned) return
+
   const currentIndex = state.trainingCurrentReplyIndex
+  const bestIndex = getBestTrainingReplyIndex()
+  const rewardedWrongReply = isGood && currentIndex !== bestIndex
+
   if (isGood) rewardTrainingReply(currentIndex)
   else penalizeTrainingReply(currentIndex)
 
-  state.trainingProgress = getTrainingProgress()
-  state.trainingLearned = state.trainingReplies[bestTrainingReplyIndex].probability >= 80
-  state.trainingMessage = isGood
-    ? "奖励 +100：这类回复下次更容易出现。"
-    : "惩罚 -10：这类回复概率下降，更合适的回复概率上升。"
+  state.trainingProgress = getBestTrainingProbability()
+  state.trainingWarningVisible = rewardedWrongReply && state.trainingRoundIndex === trainingRounds.length - 1
+  state.trainingPhaseComplete = state.trainingProgress >= getCurrentTrainingRound().threshold
 
   showTrainingFeedback(isGood ? "+100" : "-10", isGood ? "reward" : "penalty")
-  state.trainingCurrentReplyIndex = state.trainingLearned ? bestTrainingReplyIndex : weightedTrainingPick()
-  nodes.runState.textContent = state.trainingLearned ? "AI更会回答了" : "训练反馈已生效"
+  if (state.trainingPhaseComplete) {
+    state.trainingCurrentReplyIndex = getBestTrainingReplyIndex()
+    nodes.runState.textContent = getCurrentTrainingRound().completeStatus
+    renderTrainingLab()
+    return
+  }
+
+  nodes.runState.textContent = rewardedWrongReply ? "错误反馈也被AI学到了" : "训练反馈已生效"
+  queueNextTrainingReply()
   renderTrainingLab()
 }
 
 function resetTraining() {
-  state.trainingReplies = initialTrainingReplies.map((reply) => ({ ...reply }))
+  window.clearTimeout(state.trainingFeedbackTimer)
+  window.clearTimeout(state.trainingGenerateTimer)
+  state.trainingRoundIndex = 0
+  state.trainingReplies = cloneTrainingReplies(trainingRounds[0])
   state.trainingCurrentReplyIndex = 0
-  state.trainingProgress = 0
-  state.trainingMessage = "AI会根据当前概率选择一个回复。你可以点按钮，也可以左右滑动回复卡片。"
+  state.trainingProgress = getBestTrainingProbability()
+  state.trainingPhaseComplete = false
+  state.trainingAiGenerating = false
+  state.trainingWarningVisible = false
   state.trainingLearned = false
   nodes.trainingFeedback.hidden = true
   nodes.runState.textContent = "训练实验待运行"
+  renderTrainingLab()
+}
+
+function advanceTrainingRound() {
+  if (!state.trainingPhaseComplete) return
+
+  if (state.trainingRoundIndex < trainingRounds.length - 1) {
+    state.trainingRoundIndex += 1
+    state.trainingReplies = cloneTrainingReplies(getCurrentTrainingRound())
+    state.trainingCurrentReplyIndex = 0
+    state.trainingProgress = getBestTrainingProbability()
+    state.trainingPhaseComplete = false
+    state.trainingAiGenerating = false
+    state.trainingWarningVisible = false
+    nodes.trainingFeedback.hidden = true
+    nodes.runState.textContent = `进入训练阶段 ${state.trainingRoundIndex + 1}`
+    renderTrainingLab()
+    return
+  }
+
+  state.trainingLearned = true
+  state.trainingWarningVisible = false
+  nodes.trainingFeedback.hidden = true
+  nodes.runState.textContent = "第六关训练完成"
   renderTrainingLab()
 }
 
@@ -1165,6 +1271,7 @@ function restartExperience() {
   clearRagTimer()
   clearHallucinationTimer()
   window.clearTimeout(state.trainingFeedbackTimer)
+  window.clearTimeout(state.trainingGenerateTimer)
   state.isComplete = false
   state.tokens = []
   state.selectedGuess = ""
@@ -1215,20 +1322,38 @@ async function shareCompletion() {
   nodes.completionShareStatus.hidden = false
 }
 
+function getCurrentTrainingRound() {
+  return trainingRounds[state.trainingRoundIndex]
+}
+
+function cloneTrainingReplies(round) {
+  return round.replies.map((reply) => ({ ...reply }))
+}
+
+function getBestTrainingReplyIndex() {
+  return state.trainingReplies.findIndex((reply) => reply.best)
+}
+
+function getBestTrainingProbability() {
+  return state.trainingReplies[getBestTrainingReplyIndex()].probability
+}
+
 function rewardTrainingReply(index) {
-  const amount = index === bestTrainingReplyIndex ? 15 : 6
+  const bestIndex = getBestTrainingReplyIndex()
+  const amount = index === bestIndex ? 15 : 12
   state.trainingReplies[index].probability += amount
   takeTrainingProbabilityFromOthers(index, amount)
   normalizeTrainingReplies()
 }
 
 function penalizeTrainingReply(index) {
-  const amount = index === bestTrainingReplyIndex ? 5 : 15
+  const bestIndex = getBestTrainingReplyIndex()
+  const amount = index === bestIndex ? 8 : 15
   const reply = state.trainingReplies[index]
   const actualDrop = Math.min(amount, reply.probability - 2)
   reply.probability -= actualDrop
 
-  const targetIndex = index === bestTrainingReplyIndex ? 1 : bestTrainingReplyIndex
+  const targetIndex = index === bestIndex ? getHighestWrongTrainingReplyIndex() : bestIndex
   state.trainingReplies[targetIndex].probability += actualDrop
   normalizeTrainingReplies()
 }
@@ -1243,7 +1368,8 @@ function takeTrainingProbabilityFromOthers(keepIndex, amount) {
   })
 
   if (remaining > 0) {
-    const targetIndex = keepIndex === bestTrainingReplyIndex ? 1 : bestTrainingReplyIndex
+    const bestIndex = getBestTrainingReplyIndex()
+    const targetIndex = keepIndex === bestIndex ? getHighestWrongTrainingReplyIndex() : bestIndex
     state.trainingReplies[targetIndex].probability = Math.max(
       2,
       state.trainingReplies[targetIndex].probability - remaining
@@ -1259,8 +1385,9 @@ function normalizeTrainingReplies() {
   let total = state.trainingReplies.reduce((sum, reply) => sum + reply.probability, 0)
   while (total !== 100) {
     const diff = 100 - total
+    const bestIndex = getBestTrainingReplyIndex()
     const target = diff > 0
-      ? state.trainingReplies[bestTrainingReplyIndex]
+      ? state.trainingReplies[bestIndex]
       : state.trainingReplies
         .filter((reply) => reply.probability > 2)
         .sort((a, b) => b.probability - a.probability)[0]
@@ -1269,6 +1396,19 @@ function normalizeTrainingReplies() {
     target.probability += diff > 0 ? 1 : -1
     total = state.trainingReplies.reduce((sum, reply) => sum + reply.probability, 0)
   }
+}
+
+function getHighestWrongTrainingReplyIndex() {
+  let targetIndex = 0
+  let targetProbability = -1
+  state.trainingReplies.forEach((reply, index) => {
+    if (reply.best) return
+    if (reply.probability > targetProbability) {
+      targetIndex = index
+      targetProbability = reply.probability
+    }
+  })
+  return targetIndex
 }
 
 function weightedTrainingPick() {
@@ -1283,11 +1423,6 @@ function weightedTrainingPick() {
   return state.trainingReplies.length - 1
 }
 
-function getTrainingProgress() {
-  const bestProbability = state.trainingReplies[bestTrainingReplyIndex].probability
-  return Math.min(100, Math.max(0, Math.round(((bestProbability - 20) / 60) * 100)))
-}
-
 function showTrainingFeedback(text, type) {
   window.clearTimeout(state.trainingFeedbackTimer)
   nodes.trainingFeedback.textContent = text
@@ -1296,6 +1431,16 @@ function showTrainingFeedback(text, type) {
   state.trainingFeedbackTimer = window.setTimeout(() => {
     nodes.trainingFeedback.hidden = true
   }, 780)
+}
+
+function queueNextTrainingReply() {
+  window.clearTimeout(state.trainingGenerateTimer)
+  state.trainingAiGenerating = true
+  state.trainingCurrentReplyIndex = weightedTrainingPick()
+  state.trainingGenerateTimer = window.setTimeout(() => {
+    state.trainingAiGenerating = false
+    renderTrainingLab()
+  }, 360)
 }
 
 function boot() {
@@ -1333,6 +1478,7 @@ function boot() {
   nodes.trainingBadButton.addEventListener("click", () => applyTrainingFeedback(false))
   nodes.trainingGoodButton.addEventListener("click", () => applyTrainingFeedback(true))
   nodes.trainingResetButton.addEventListener("click", resetTraining)
+  nodes.trainingNextStageButton.addEventListener("click", advanceTrainingRound)
   nodes.trainingCompletionButton.addEventListener("click", showCompletionPage)
   nodes.completionRestartButton.addEventListener("click", restartExperience)
   nodes.completionShareButton.addEventListener("click", shareCompletion)
